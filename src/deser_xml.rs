@@ -10,6 +10,7 @@ pub trait XmlSerializer: Sized {
     type SerializeStruct: XmlSerializeStruct<Ok = Self::Ok, Error = Self::Error>;
 
     fn serialize_struct(self, name: &'static str) -> Result<Self::SerializeStruct, Self::Error>;
+    // fn serialize_struct_with_attribute(self, name: &'static str, key: &'static str, value: &'static str) -> Result<Self::SerializeStruct, Self::Error>;
 }
 
 pub trait XmlSerializeStruct {
@@ -19,7 +20,7 @@ pub trait XmlSerializeStruct {
     fn serialize_attribute(
         &mut self,
         key: &'static str,
-        value: &'static str,
+        value: & str,
     ) -> Result<(), Self::Error>;
 
     fn serialize_field<T: ?Sized>(

@@ -51,11 +51,7 @@ impl<'s, 'a> XmlSerializeStruct for &'s mut TokenSerializer<'a> {
     type Ok = ();
     type Error = super::Error;
 
-    fn serialize_attribute(
-        &mut self,
-        key: &'static str,
-        value: &'static str,
-    ) -> Result<(), Self::Error> {
+    fn serialize_attribute(&mut self, key: &'static str, value: &str) -> Result<(), Self::Error> {
         todo!()
     }
 
