@@ -165,3 +165,36 @@ fn ser_derive_flatten_complex() {
         "
     );
 }
+
+#[test]
+fn ser_derive_vec() {
+    #[derive(SerXml)]
+    struct Base {
+        field: Vec<Common>,
+    }
+    let data = Base {
+        field: vec![
+            Common {
+                name: "Name 1".to_string(),
+            },
+            Common {
+                name: "Name 2".to_string(),
+            },
+        ],
+    };
+
+    let mut writer = Writer::new(Cursor::new(Vec::new()));
+    // to_writer(&mut buffer, &data).unwrap();
+    data.serialize_xml(&mut writer).unwrap();
+    let buffer = writer.into_inner().into_inner();
+    assert_eq!(
+        String::from_utf8_lossy(&buffer),
+        "<Base>\
+            <field>\
+            <Common><name>Name 1</name></Common>\
+            <Common><name>Name 2</name></Common>\
+            </field>\
+        </Base>\
+        "
+    );
+}

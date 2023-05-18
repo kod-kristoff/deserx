@@ -107,3 +107,39 @@ impl SerXml for String {
         Cow::Borrowed(&self)
     }
 }
+
+impl<T> SerXml for Vec<T>
+where
+    T: SerXml,
+{
+    fn serialize_xml<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        unimplemented!()
+    }
+
+    fn ser_as_element<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+        tag: &str,
+    ) -> Result<(), quick_xml::Error> {
+        let elem = BytesStart::new(tag);
+        if self.is_empty() {
+            serializer.write_event(Event::Empty(elem))
+        } else {
+            serializer.write_event(Event::Start(elem.clone()))?;
+            self.ser_elem_body(serializer)?;
+            serializer.write_event(Event::End(elem.to_end()))
+        }
+    }
+    fn ser_elem_body<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        for obj in self {
+            obj.serialize_xml(serializer)?;
+        }
+        Ok(())
+    }
+}
