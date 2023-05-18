@@ -1,8 +1,10 @@
 mod deser_xml;
 pub use crate::deser_xml::{SerXml, XmlSerializeStruct, XmlSerializer};
 
+pub use deserx_derive::*;
+
 pub mod quick_xml_impl;
-pub mod testing;
+// pub mod testing;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

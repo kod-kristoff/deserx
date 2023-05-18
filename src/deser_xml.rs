@@ -1,7 +1,48 @@
+use std::borrow::Cow;
+
+use quick_xml::{
+    events::{BytesStart, BytesText, Event},
+    Writer,
+};
+
 pub trait SerXml {
-    fn serialize_xml<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: XmlSerializer;
+    fn serialize_xml<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error>; // Result<S::Ok, S::Error>
+                                       // where
+                                       //     S: XmlSerializer;
+    fn ser_as_element<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+        tag: &str,
+    ) -> Result<(), quick_xml::Error> {
+        todo!("please impl ser_as_element")
+    }
+
+    fn ser_elem_body<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        todo!("please impl ser_elem_body")
+    }
+
+    fn ser_elem_attributes(&self, element: &mut quick_xml::events::BytesStart)
+    // -> Result<(), quick_xml::Error>
+    {
+        todo!("please impl ser_elem_attributes")
+    }
+
+    fn ser_as_text<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        todo!("impl ser_as_text")
+    }
+
+    fn as_cow_str<'a>(&'a self) -> Cow<'a, str> {
+        todo!("impl as_cow_str")
+    }
 }
 
 pub trait XmlSerializer: Sized {
@@ -17,11 +58,7 @@ pub trait XmlSerializeStruct {
     type Ok;
     type Error: std::error::Error;
 
-    fn serialize_attribute(
-        &mut self,
-        key: &'static str,
-        value: & str,
-    ) -> Result<(), Self::Error>;
+    fn serialize_attribute(&mut self, key: &'static str, value: &str) -> Result<(), Self::Error>;
 
     fn serialize_field<T: ?Sized>(
         &mut self,
@@ -38,4 +75,35 @@ pub trait XmlSerializeStruct {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error>;
+}
+
+impl SerXml for String {
+    fn serialize_xml<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        unimplemented!("")
+    }
+
+    fn ser_as_element<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+        tag: &str,
+    ) -> Result<(), quick_xml::Error> {
+        let elem = BytesStart::new(tag);
+        serializer.write_event(Event::Start(elem.clone()))?;
+        serializer.write_event(Event::Text(BytesText::new(&self)))?;
+        serializer.write_event(Event::End(elem.to_end()))
+    }
+
+    fn ser_as_text<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        serializer.write_event(Event::Text(BytesText::new(&self)))
+    }
+
+    fn as_cow_str<'a>(&'a self) -> Cow<'a, str> {
+        Cow::Borrowed(&self)
+    }
 }
