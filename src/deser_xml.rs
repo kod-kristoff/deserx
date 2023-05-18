@@ -1,8 +1,8 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, io::BufRead};
 
 use quick_xml::{
     events::{BytesStart, BytesText, Event},
-    Writer,
+    NsReader, Writer,
 };
 
 pub trait SerXml {
@@ -43,6 +43,10 @@ pub trait SerXml {
     fn as_cow_str<'a>(&'a self) -> Cow<'a, str> {
         todo!("impl as_cow_str")
     }
+}
+
+pub trait DeXml: Sized {
+    fn deserialize_xml<R: BufRead>(reader: &mut NsReader<R>) -> Result<Self, quick_xml::Error>;
 }
 
 pub trait XmlSerializer: Sized {
