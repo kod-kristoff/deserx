@@ -1,5 +1,7 @@
 use std::{borrow::Cow, io::BufRead};
 
+mod de_xml_impl;
+
 use quick_xml::{
     events::{BytesStart, BytesText, Event},
     NsReader, Writer,
@@ -47,6 +49,67 @@ pub trait SerXml {
 
 pub trait DeXml: Sized {
     fn deserialize_xml<R: BufRead>(reader: &mut NsReader<R>) -> Result<Self, quick_xml::Error>;
+    fn deserialize_xml_from_text<R: BufRead>(
+        reader: &mut NsReader<R>,
+    ) -> Result<Self, quick_xml::Error> {
+        unimplemented!("impl if applicable")
+    }
+    fn deserialize_xml_from_attribute(
+        start: &BytesStart,
+        attr: &str,
+    ) -> Result<Self, quick_xml::Error> {
+        unimplemented!("impl if applicable")
+    }
+    fn deserialize_xml_from_body<R: BufRead>(
+        reader: &mut NsReader<R>,
+        start: &BytesStart,
+    ) -> Result<Self, quick_xml::Error> {
+        unimplemented!("impl deserialize_xml_from_body if applicable")
+    }
+    fn deserialize_xml_from_tag<R: BufRead>(
+        reader: &mut NsReader<R>,
+        tag: &str,
+    ) -> Result<Self, quick_xml::Error> {
+        use quick_xml::events::Event;
+        let mut buf = Vec::new();
+        let mut is_empty_elem: bool;
+        let self_: Self = match reader.read_event_into(&mut buf)? {
+            Event::Empty(evt) if evt.name().as_ref() == tag.as_bytes() => {
+                is_empty_elem = true;
+                Self::deserialize_xml_from_body(reader, &evt)?
+            }
+            Event::Start(evt) if evt.name().as_ref() == tag.as_bytes() => {
+                is_empty_elem = false;
+                Self::deserialize_xml_from_body(reader, &evt)?
+            }
+            evt => {
+                return Err(quick_xml::Error::UnexpectedToken(format!(
+                    "expected tag='{}', got {:?}",
+                    tag, evt
+                )))
+            }
+        };
+        if !is_empty_elem {
+            expect_event_end(reader, &mut buf, tag.as_bytes())?;
+        }
+        Ok(self_)
+    }
+}
+
+pub fn expect_event_end<R: std::io::BufRead>(
+    reader: &mut NsReader<R>,
+    buf: &mut Vec<u8>,
+    tag: &[u8],
+) -> Result<(), quick_xml::Error> {
+    use quick_xml::events::Event;
+    match reader.read_event_into(buf)? {
+        Event::End(end) if end.name().as_ref() == tag => Ok(()),
+        evt => Err(quick_xml::Error::UnexpectedToken(format!(
+            "expected End({}), got {:?}",
+            String::from_utf8_lossy(tag),
+            evt
+        ))),
+    }
 }
 
 pub trait XmlSerializer: Sized {
