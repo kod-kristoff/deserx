@@ -1,5 +1,5 @@
 mod deser_xml;
-pub use crate::deser_xml::{SerXml, XmlSerializeStruct, XmlSerializer};
+pub use crate::deser_xml::{DeXml, SerXml, XmlSerializeStruct, XmlSerializer};
 
 pub use deserx_derive::*;
 

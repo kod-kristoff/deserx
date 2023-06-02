@@ -18,3 +18,16 @@ pub fn derive_ser_xml(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
     ts
 }
+
+#[proc_macro_derive(DeXml, attributes(deserx))]
+pub fn derive_de_xml(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = parse::parse_data(input);
+
+    let ts = match &input {
+        parse::Data::Struct(struct_) if struct_.named => derive_de_xml_struct(struct_),
+
+        _ => todo!(),
+    };
+
+    ts
+}

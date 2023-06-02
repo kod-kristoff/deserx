@@ -1,13 +1,13 @@
 use std::io::Cursor;
 
 // use deserx::testing::{assert_ser_tokens, Token};
-use deserx::SerXml;
+use deserx::{DeXml, SerXml};
 use quick_xml::{
     events::{BytesStart, Event},
-    Writer,
+    NsReader, Writer,
 };
 
-#[derive(SerXml)]
+#[derive(SerXml, PartialEq, Debug)]
 struct Common {
     name: String,
 }
@@ -23,7 +23,7 @@ pub struct RootWithFlatten {
     text: String,
 }
 
-#[derive(SerXml)]
+#[derive(SerXml, Debug, PartialEq)]
 pub struct Root {
     #[deserx(xml_attribute)]
     attribute: String,
@@ -33,12 +33,14 @@ pub struct Root {
     child: Common,
 }
 
-#[test]
-fn ser_attribute() {
+mod contributor {
+
+    use super::*;
+    use quick_xml::NsReader;
+
     pub struct Contributor {
         resource: String,
     }
-
     impl SerXml for Contributor {
         fn serialize_xml<W: std::io::Write>(
             &self,
@@ -57,32 +59,125 @@ fn ser_attribute() {
         //         }
     }
 
-    let val = Contributor {
-        resource: "#A".into(),
+    impl DeXml for Contributor {
+        fn deserialize_xml<R: std::io::BufRead>(
+            reader: &mut NsReader<R>,
+        ) -> Result<Self, quick_xml::Error> {
+            use quick_xml::events::Event;
+            let mut buf = Vec::new();
+            let mut resource: Option<String> = None;
+            match reader.read_event_into(&mut buf)? {
+                Event::Empty(evt) if evt.name().as_ref() == b"Contributor" => {
+                    let opt_attr_resource = evt.try_get_attribute("resource")?;
+                    match opt_attr_resource {
+                        None => {
+                            return Err(quick_xml::Error::UnexpectedEof(format!(
+                                "missing 'resource' in {:?}",
+                                evt
+                            )))
+                        }
+                        Some(attr_resource) => {
+                            resource = Some(
+                                String::from_utf8(attr_resource.value.to_vec()).expect("value"),
+                            )
+                        }
+                    }
+                }
+                Event::Start(evt) if evt.name().as_ref() == b"Contributor" => {
+                    let opt_attr_resource = evt.try_get_attribute("resource")?;
+                    match opt_attr_resource {
+                        None => {
+                            return Err(quick_xml::Error::UnexpectedEof(format!(
+                                "missing 'resource' in {:?}",
+                                evt
+                            )))
+                        }
+                        Some(attr_resource) => {
+                            resource = Some(
+                                String::from_utf8(attr_resource.value.to_vec()).expect("value"),
+                            )
+                        }
+                    }
+                }
+                evt => return Err(quick_xml::Error::UnexpectedToken(format!("got {:?}", evt))),
+            }
+            Ok(Self {
+                resource: resource.take().unwrap(),
+            })
+        }
+    }
+
+    #[test]
+    fn ser_attribute() {
+        let val = Contributor {
+            resource: "#A".into(),
+        };
+
+        let mut writer = Writer::new(Cursor::new(Vec::new()));
+        val.serialize_xml(&mut writer).unwrap();
+
+        let buffer = writer.into_inner().into_inner();
+        assert_eq!(
+            String::from_utf8_lossy(&buffer),
+            r##"<Contributor resource="#A"/>"##
+        );
+
+        //     assert_ser_tokens(
+        //         &val,
+        //         &[
+        //             Token::Struct {
+        //                 name: "Contributor",
+        //                 len: 0,
+        //             },
+        //             Token::StructEnd,
+        //         ],
+        //     )
+    }
+
+    #[test]
+    fn de_attribute_empty() {
+        let data = r##"<Contributor resource="#A"/>"##;
+
+        let mut reader = NsReader::from_str(data);
+
+        let contributor = Contributor::deserialize_xml(&mut reader).unwrap();
+    }
+
+    #[test]
+    fn de_attribute_start_end() {
+        let data = r##"<Contributor resource="#A"></Contributor>"##;
+
+        let mut reader = NsReader::from_str(data);
+
+        let contributor = Contributor::deserialize_xml(&mut reader).unwrap();
+    }
+}
+#[test]
+fn deser_derive_common() {
+    let data = Common {
+        name: "child content".to_string(),
     };
 
     let mut writer = Writer::new(Cursor::new(Vec::new()));
-    val.serialize_xml(&mut writer).unwrap();
-
+    // to_writer(&mut buffer, &data).unwrap();
+    data.serialize_xml(&mut writer).unwrap();
     let buffer = writer.into_inner().into_inner();
     assert_eq!(
         String::from_utf8_lossy(&buffer),
-        r##"<Contributor resource="#A"/>"##
+        "<Common>\
+            <name>child content</name>\
+        </Common>\
+        "
     );
-    //     assert_ser_tokens(
-    //         &val,
-    //         &[
-    //             Token::Struct {
-    //                 name: "Contributor",
-    //                 len: 0,
-    //             },
-    //             Token::StructEnd,
-    //         ],
-    //     )
-}
 
+    let mut reader = NsReader::from_reader(Cursor::new(buffer));
+
+    // let data_copy = Common::deserialize_xml(&mut reader).unwrap();
+
+    // assert_eq!(data, data_copy);
+}
 #[test]
-fn ser_derive() {
+fn deser_derive() {
     let data = Root {
         attribute: "attribute content".to_string(),
         element: "element content".to_string(),
@@ -105,6 +200,12 @@ fn ser_derive() {
         </Root>\
         "
     );
+
+    let mut reader = NsReader::from_reader(Cursor::new(buffer));
+
+    // let data_copy = Root::deserialize_xml(&mut reader).unwrap();
+
+    // assert_eq!(data, data_copy);
 }
 
 #[test]
