@@ -19,7 +19,21 @@ pub trait SerXml {
         serializer: &mut Writer<W>,
         tag: &str,
     ) -> Result<(), quick_xml::Error> {
-        todo!("please impl ser_as_element")
+        let mut elem = BytesStart::new(tag);
+        self.ser_elem_attributes(&mut elem);
+        serializer.write_event(Event::Start(elem.clone()))?;
+        self.ser_elem_body(serializer)?;
+        serializer.write_event(Event::End(elem.to_end()))
+    }
+
+    fn ser_as_element_empty<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+        tag: &str,
+    ) -> Result<(), quick_xml::Error> {
+        let mut elem = BytesStart::new(tag);
+        self.ser_elem_attributes(&mut elem);
+        serializer.write_event(Event::Empty(elem))
     }
 
     fn ser_elem_body<W: std::io::Write>(
@@ -32,7 +46,7 @@ pub trait SerXml {
     fn ser_elem_attributes(&self, element: &mut quick_xml::events::BytesStart)
     // -> Result<(), quick_xml::Error>
     {
-        todo!("please impl ser_elem_attributes")
+        // todo!("please impl ser_elem_attributes")
     }
 
     fn ser_as_text<W: std::io::Write>(

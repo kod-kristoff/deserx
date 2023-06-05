@@ -26,6 +26,22 @@ impl DeXml for Common {
     }
 }
 
+impl SerXml for Common {
+    fn serialize_xml<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        self.ser_as_element(serializer, "Common")
+    }
+
+    fn ser_elem_body<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        self.name.ser_as_element(serializer, "name")
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Root {
     // #[deserx(xml_attribute)]
@@ -55,6 +71,26 @@ impl DeXml for Root {
             text,
             child,
         })
+    }
+}
+impl SerXml for Root {
+    fn ser_elem_attributes(&self, element: &mut quick_xml::events::BytesStart) {
+        element.push_attribute(("attribute", self.attribute.as_str()));
+    }
+    fn ser_elem_body<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        self.element.ser_as_element(serializer, "element")?;
+        self.text.ser_as_text(serializer)?;
+        self.child.ser_as_element(serializer, "child")?;
+        Ok(())
+    }
+    fn serialize_xml<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        self.ser_as_element(serializer, "Root")
     }
 }
 
@@ -92,19 +128,40 @@ impl DeXml for Flatten {
         })
     }
 }
-
-pub struct Attribute {
-    resource: String,
-}
-impl SerXml for Attribute {
+impl SerXml for Flatten {
     fn serialize_xml<W: std::io::Write>(
         &self,
         serializer: &mut Writer<W>,
     ) -> Result<(), quick_xml::Error> {
-        use quick_xml::events::Event;
-        let mut elem = BytesStart::new("Attribute");
-        elem.push_attribute(("resource", self.resource.as_str()));
-        serializer.write_event(Event::Empty(elem))
+        self.ser_as_element(serializer, "Flatten")
+    }
+
+    fn ser_elem_body<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        self.common.ser_elem_body(serializer)?;
+        self.element.ser_as_element(serializer, "element")?;
+        self.text.ser_as_text(serializer)
+    }
+    fn ser_elem_attributes(&self, element: &mut quick_xml::events::BytesStart) {
+        element.push_attribute(("attribute", self.attribute.as_str()));
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Attribute {
+    resource: String,
+}
+impl SerXml for Attribute {
+    fn ser_elem_attributes(&self, element: &mut quick_xml::events::BytesStart) {
+        element.push_attribute(("resource", self.resource.as_str()));
+    }
+    fn serialize_xml<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        self.ser_as_element_empty(serializer, "Attribute")
     }
     //         fn serialize_xml<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     //         where
@@ -115,24 +172,10 @@ impl SerXml for Attribute {
     //         }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct FlattenAttribute {
     // flatten
     any_name: Attribute,
-}
-pub fn expect_event_end<R: std::io::BufRead>(
-    reader: &mut NsReader<R>,
-    buf: &mut Vec<u8>,
-    tag: &[u8],
-) -> Result<(), quick_xml::Error> {
-    use quick_xml::events::Event;
-    match reader.read_event_into(buf)? {
-        Event::End(end) if end.name().as_ref() == tag => Ok(()),
-        evt => Err(quick_xml::Error::UnexpectedToken(format!(
-            "expected End({}), got {:?}",
-            String::from_utf8_lossy(tag),
-            evt
-        ))),
-    }
 }
 impl DeXml for Attribute {
     fn deserialize_xml<R: std::io::BufRead>(
@@ -164,190 +207,16 @@ impl DeXml for FlattenAttribute {
         Ok(Self { any_name })
     }
 }
-
-#[test]
-fn ser_attribute() {
-    let val = Attribute {
-        resource: "#A".into(),
-    };
-
-    let mut writer = Writer::new(Cursor::new(Vec::new()));
-    val.serialize_xml(&mut writer).unwrap();
-
-    let buffer = writer.into_inner().into_inner();
-    assert_eq!(
-        String::from_utf8_lossy(&buffer),
-        r##"<Attribute resource="#A"/>"##
-    );
-
-    //     assert_ser_tokens(
-    //         &val,
-    //         &[
-    //             Token::Struct {
-    //                 name: "Attribute",
-    //                 len: 0,
-    //             },
-    //             Token::StructEnd,
-    //         ],
-    //     )
-}
-
-#[test]
-fn de_attribute_empty() {
-    let data = r##"<Attribute resource="#A"/>"##;
-
-    let mut reader = NsReader::from_str(data);
-
-    let _contributor = Attribute::deserialize_xml(&mut reader).unwrap();
-    let mut buf = Vec::new();
-    assert_eq!(
-        reader.read_event_into(&mut buf).unwrap(),
-        quick_xml::events::Event::Eof
-    );
-}
-
-#[test]
-fn de_attribute_start_end() {
-    let data = r##"<Attribute resource="#A"></Attribute>"##;
-
-    let mut reader = NsReader::from_str(data);
-
-    let _contributor = Attribute::deserialize_xml(&mut reader).unwrap();
-    let mut buf = Vec::new();
-    assert_eq!(
-        reader.read_event_into(&mut buf).unwrap(),
-        quick_xml::events::Event::Eof
-    );
-}
-
-#[test]
-fn de_flatten_attribute_empty() {
-    let data = r##"<FlattenAttribute resource="#A"/>"##;
-
-    let mut reader = NsReader::from_str(data);
-
-    let _contributor = FlattenAttribute::deserialize_xml(&mut reader).unwrap();
-    let mut buf = Vec::new();
-    assert_eq!(
-        reader.read_event_into(&mut buf).unwrap(),
-        quick_xml::events::Event::Eof
-    );
-}
-
-#[test]
-fn de_flatten_attribute_start_end() {
-    let data = r##"<FlattenAttribute resource="#A"></FlattenAttribute>"##;
-
-    let mut reader = NsReader::from_str(data);
-
-    let _contributor = FlattenAttribute::deserialize_xml(&mut reader).unwrap();
-    let mut buf = Vec::new();
-    assert_eq!(
-        reader.read_event_into(&mut buf).unwrap(),
-        quick_xml::events::Event::Eof
-    );
-}
-
-#[test]
-fn de_common() {
-    let data = Common {
-        name: "child content".to_string(),
-    };
-
-    //     let mut writer = Writer::new(Cursor::new(Vec::new()));
-    //     // to_writer(&mut buffer, &data).unwrap();
-    //     data.serialize_xml(&mut writer).unwrap();
-    //     let buffer = writer.into_inner().into_inner();
-    //     assert_eq!(
-    //         String::from_utf8_lossy(&buffer),
-    let buffer = "<Common>\
-            <name>child content</name>\
-        </Common>\
-        ";
-    //     );
-
-    let mut reader = NsReader::from_reader(Cursor::new(buffer));
-
-    let data_copy = Common::deserialize_xml(&mut reader).unwrap();
-
-    assert_eq!(data, data_copy);
-    let mut buf = Vec::new();
-    assert_eq!(
-        reader.read_event_into(&mut buf).unwrap(),
-        quick_xml::events::Event::Eof
-    );
-}
-#[test]
-fn de_root() {
-    let data = Root {
-        attribute: "attribute content".to_string(),
-        element: "element content".to_string(),
-        text: "text content".to_string(),
-        child: Common {
-            name: "child content".to_string(),
-        },
-    };
-
-    //     let mut writer = Writer::new(Cursor::new(Vec::new()));
-    //     // to_writer(&mut buffer, &data).unwrap();
-    //     data.serialize_xml(&mut writer).unwrap();
-    //     let buffer = writer.into_inner().into_inner();
-    //     assert_eq!(
-    //         String::from_utf8_lossy(&buffer),
-    let buffer = "<Root attribute=\"attribute content\">\
-            <element>element content</element>\
-            text content\
-            <child><name>child content</name></child>\
-        </Root>\
-        ";
-    //     );
-
-    let mut reader = NsReader::from_reader(Cursor::new(buffer));
-
-    let data_copy = Root::deserialize_xml(&mut reader).unwrap();
-
-    assert_eq!(data, data_copy);
-    let mut buf = Vec::new();
-    assert_eq!(
-        reader.read_event_into(&mut buf).unwrap(),
-        quick_xml::events::Event::Eof
-    );
-}
-
-#[test]
-fn de_flatten() {
-    let data = Flatten {
-        common: Common {
-            name: "Name".to_string(),
-        },
-        attribute: "attribute content".to_string(),
-        element: "element content".to_string(),
-        text: "text content".to_string(),
-    };
-
-    //     let mut writer = Writer::new(Cursor::new(Vec::new()));
-    //     // to_writer(&mut buffer, &data).unwrap();
-    //     data.serialize_xml(&mut writer).unwrap();
-    //     let buffer = writer.into_inner().into_inner();
-    //     assert_eq!(
-    //         String::from_utf8_lossy(&buffer),
-    let buffer = "<Flatten attribute=\"attribute content\">\
-            <name>Name</name>\
-            <element>element content</element>\
-            text content\
-        </Flatten>\
-        ";
-    //     );
-    let mut reader = NsReader::from_reader(Cursor::new(buffer));
-
-    let data_copy = Flatten::deserialize_xml(&mut reader).unwrap();
-
-    assert_eq!(data, data_copy);
-    let mut buf = Vec::new();
-    assert_eq!(
-        reader.read_event_into(&mut buf).unwrap(),
-        quick_xml::events::Event::Eof
-    );
+impl SerXml for FlattenAttribute {
+    fn serialize_xml<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        self.ser_as_element_empty(serializer, "FlattenAttribute")
+    }
+    fn ser_elem_attributes(&self, element: &mut quick_xml::events::BytesStart) {
+        self.any_name.ser_elem_attributes(element)
+    }
 }
 
 //     #[derive(SerXml)]
@@ -371,9 +240,210 @@ impl DeXml for FlattenTwice {
         Ok(Self { field })
     }
 }
+impl SerXml for FlattenTwice {
+    fn serialize_xml<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        self.ser_as_element(serializer, "FlattenTwice")
+    }
+    fn ser_elem_body<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        self.field.ser_elem_body(serializer)
+    }
+    fn ser_elem_attributes(&self, element: &mut quick_xml::events::BytesStart) {
+        self.field.ser_elem_attributes(element)
+    }
+}
 
 #[test]
-fn de_flatten_twice() {
+fn deser_attribute_empty() {
+    let val = Attribute {
+        resource: "#A".into(),
+    };
+
+    let mut writer = Writer::new(Cursor::new(Vec::new()));
+    val.serialize_xml(&mut writer).unwrap();
+
+    let buffer = writer.into_inner().into_inner();
+    assert_eq!(
+        String::from_utf8_lossy(&buffer),
+        r##"<Attribute resource="#A"/>"##
+    );
+
+    let mut reader = NsReader::from_reader(Cursor::new(buffer));
+
+    let val_copy = Attribute::deserialize_xml(&mut reader).unwrap();
+    let mut buf = Vec::new();
+    assert_eq!(
+        reader.read_event_into(&mut buf).unwrap(),
+        quick_xml::events::Event::Eof
+    );
+    assert_eq!(val, val_copy);
+}
+
+#[test]
+fn de_attribute_start_end() {
+    let data = r##"<Attribute resource="#A"></Attribute>"##;
+
+    let mut reader = NsReader::from_str(data);
+
+    let _contributor = Attribute::deserialize_xml(&mut reader).unwrap();
+    let mut buf = Vec::new();
+    assert_eq!(
+        reader.read_event_into(&mut buf).unwrap(),
+        quick_xml::events::Event::Eof
+    );
+}
+
+#[test]
+fn deser_flatten_attribute_empty() {
+    let val = FlattenAttribute {
+        any_name: Attribute {
+            resource: "#A".into(),
+        },
+    };
+
+    let mut writer = Writer::new(Cursor::new(Vec::new()));
+    val.serialize_xml(&mut writer).unwrap();
+
+    let buffer = writer.into_inner().into_inner();
+    assert_eq!(
+        String::from_utf8_lossy(&buffer),
+        r##"<FlattenAttribute resource="#A"/>"##
+    );
+
+    let mut reader = NsReader::from_reader(Cursor::new(buffer));
+
+    let val_copy = FlattenAttribute::deserialize_xml(&mut reader).unwrap();
+    let mut buf = Vec::new();
+    assert_eq!(
+        reader.read_event_into(&mut buf).unwrap(),
+        quick_xml::events::Event::Eof
+    );
+    assert_eq!(val, val_copy);
+}
+
+#[test]
+fn de_flatten_attribute_start_end() {
+    let data = r##"<FlattenAttribute resource="#A"></FlattenAttribute>"##;
+
+    let mut reader = NsReader::from_str(data);
+
+    let _contributor = FlattenAttribute::deserialize_xml(&mut reader).unwrap();
+    let mut buf = Vec::new();
+    assert_eq!(
+        reader.read_event_into(&mut buf).unwrap(),
+        quick_xml::events::Event::Eof
+    );
+}
+
+#[test]
+fn deser_common() {
+    let data = Common {
+        name: "child content".to_string(),
+    };
+
+    let mut writer = Writer::new(Cursor::new(Vec::new()));
+    // to_writer(&mut buffer, &data).unwrap();
+    data.serialize_xml(&mut writer).unwrap();
+    let buffer = writer.into_inner().into_inner();
+    assert_eq!(
+        String::from_utf8_lossy(&buffer),
+        "<Common>\
+            <name>child content</name>\
+        </Common>\
+        "
+    );
+
+    let mut reader = NsReader::from_reader(Cursor::new(buffer));
+
+    let data_copy = Common::deserialize_xml(&mut reader).unwrap();
+
+    assert_eq!(data, data_copy);
+    let mut buf = Vec::new();
+    assert_eq!(
+        reader.read_event_into(&mut buf).unwrap(),
+        quick_xml::events::Event::Eof
+    );
+}
+#[test]
+fn deser_root() {
+    let data = Root {
+        attribute: "attribute content".to_string(),
+        element: "element content".to_string(),
+        text: "text content".to_string(),
+        child: Common {
+            name: "child content".to_string(),
+        },
+    };
+
+    let mut writer = Writer::new(Cursor::new(Vec::new()));
+    // to_writer(&mut buffer, &data).unwrap();
+    data.serialize_xml(&mut writer).unwrap();
+    let buffer = writer.into_inner().into_inner();
+    assert_eq!(
+        String::from_utf8_lossy(&buffer),
+        "<Root attribute=\"attribute content\">\
+            <element>element content</element>\
+            text content\
+            <child><name>child content</name></child>\
+        </Root>\
+        "
+    );
+
+    let mut reader = NsReader::from_reader(Cursor::new(buffer));
+
+    let data_copy = Root::deserialize_xml(&mut reader).unwrap();
+
+    assert_eq!(data, data_copy);
+    let mut buf = Vec::new();
+    assert_eq!(
+        reader.read_event_into(&mut buf).unwrap(),
+        quick_xml::events::Event::Eof
+    );
+}
+
+#[test]
+fn deser_flatten() {
+    let data = Flatten {
+        common: Common {
+            name: "Name".to_string(),
+        },
+        attribute: "attribute content".to_string(),
+        element: "element content".to_string(),
+        text: "text content".to_string(),
+    };
+
+    let mut writer = Writer::new(Cursor::new(Vec::new()));
+    // to_writer(&mut buffer, &data).unwrap();
+    data.serialize_xml(&mut writer).unwrap();
+    let buffer = writer.into_inner().into_inner();
+    assert_eq!(
+        String::from_utf8_lossy(&buffer),
+        "<Flatten attribute=\"attribute content\">\
+            <name>Name</name>\
+            <element>element content</element>\
+            text content\
+        </Flatten>\
+        "
+    );
+    let mut reader = NsReader::from_reader(Cursor::new(buffer));
+
+    let data_copy = Flatten::deserialize_xml(&mut reader).unwrap();
+
+    assert_eq!(data, data_copy);
+    let mut buf = Vec::new();
+    assert_eq!(
+        reader.read_event_into(&mut buf).unwrap(),
+        quick_xml::events::Event::Eof
+    );
+}
+
+#[test]
+fn deser_flatten_twice() {
     let data = FlattenTwice {
         field: Flatten {
             common: Common {
@@ -385,19 +455,19 @@ fn de_flatten_twice() {
         },
     };
 
-    //     let mut writer = Writer::new(Cursor::new(Vec::new()));
-    //     // to_writer(&mut buffer, &data).unwrap();
-    //     data.serialize_xml(&mut writer).unwrap();
-    //     let buffer = writer.into_inner().into_inner();
-    //     assert_eq!(
-    //         String::from_utf8_lossy(&buffer),
-    let buffer = "<FlattenTwice attribute=\"attribute content\">\
+    let mut writer = Writer::new(Cursor::new(Vec::new()));
+    // to_writer(&mut buffer, &data).unwrap();
+    data.serialize_xml(&mut writer).unwrap();
+    let buffer = writer.into_inner().into_inner();
+    assert_eq!(
+        String::from_utf8_lossy(&buffer),
+        "<FlattenTwice attribute=\"attribute content\">\
             <name>Name</name>\
             <element>element content</element>\
             text content\
         </FlattenTwice>\
-        ";
-    //     );
+        "
+    );
     let mut reader = NsReader::from_reader(Cursor::new(buffer));
 
     let data_copy = FlattenTwice::deserialize_xml(&mut reader).unwrap();
