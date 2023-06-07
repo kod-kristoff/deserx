@@ -86,7 +86,7 @@ pub trait DeXml: Sized {
     ) -> Result<Self, quick_xml::Error> {
         use quick_xml::events::Event;
         let mut buf = Vec::new();
-        let mut is_empty_elem: bool;
+        let is_empty_elem: bool;
         let self_: Self = match reader.read_event_into(&mut buf)? {
             Event::Empty(evt) if evt.name().as_ref() == tag.as_bytes() => {
                 is_empty_elem = true;
