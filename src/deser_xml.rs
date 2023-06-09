@@ -3,7 +3,7 @@ use std::{borrow::Cow, io::BufRead};
 mod de_xml_impl;
 
 use quick_xml::{
-    events::{BytesStart, BytesText, Event},
+    events::{BytesEnd, BytesStart, BytesText, Event},
     NsReader, Writer,
 };
 
@@ -79,6 +79,13 @@ pub trait DeXml: Sized {
         start: &BytesStart,
     ) -> Result<Self, quick_xml::Error> {
         unimplemented!("impl deserialize_xml_from_body if applicable")
+    }
+    fn deserialize_xml_from_body_with_end<R: BufRead>(
+        reader: &mut NsReader<R>,
+        start: &BytesStart,
+        expected_end: BytesEnd,
+    ) -> Result<Self, quick_xml::Error> {
+        unimplemented!("impl deserialize_xml_from_body_with_end if applicable")
     }
     fn deserialize_xml_from_tag<R: BufRead>(
         reader: &mut NsReader<R>,
