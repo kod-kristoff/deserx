@@ -1,4 +1,5 @@
 extern crate proc_macro;
+use proc_macro_error::proc_macro_error;
 
 mod deserx_xml;
 use crate::deserx_xml::*;
@@ -6,11 +7,12 @@ use crate::deserx_xml::*;
 mod de_xml;
 mod parse;
 mod ser_xml;
+
 mod shared;
 
 #[proc_macro_derive(SerXml, attributes(deserx))]
 pub fn ser_xml(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    ser_xml::ser_xml(input)
+    ser_xml::ser_xml(input.into()).into()
     // let input = parse::parse_data(input);
 
     // let ts = match &input {
@@ -22,9 +24,10 @@ pub fn ser_xml(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // ts
 }
 
+#[proc_macro_error]
 #[proc_macro_derive(DeXml, attributes(deserx))]
-pub fn de_xml(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    de_xml::de_xml(input)
+pub fn de_xml(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    de_xml::de_xml(item.into()).into()
     // let input = parse::parse_data(input);
 
     // let ts = match &input {

@@ -14,5 +14,10 @@ default = []
 no_std = ["dep:hashbrown"]
 
 [dependencies]
+deluxe = "0.5.0"
 hashbrown = { version = "0.13.2", optional = true }
+proc-macro-error = "1.0.4"
+proc-macro2 = "1.0.60"
+quote = "1.0.28"
+syn = "2.0.18"
 # hashbrown = {version = "0.13", optional = true}

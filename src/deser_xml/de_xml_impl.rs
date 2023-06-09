@@ -111,12 +111,14 @@ where
 
     //     let mut _vec = Vec::new();
     //     let mut buf = Vec::new();
-    //     match reader.read_event_into(&mut buf)? {
-    //         Event::Start(mut evt) => {
-    //             let val = T::deserialize_xml_from_body(reader, &mut evt)?;
-    //             _vec.push(val);
+    //     loop {
+    //         match reader.read_event_into(&mut buf)? {
+    //             Event::Start(mut evt) => {
+    //                 let val = T::deserialize_xml_from_body(reader, &mut evt)?;
+    //                 _vec.push(val);
+    //             }
+    //             evt => todo!("handle {:?}", evt),
     //         }
-    //         _ => todo!(),
     //     }
     //     Ok(_vec)
     // }
