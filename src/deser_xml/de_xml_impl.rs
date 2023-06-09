@@ -54,6 +54,12 @@ impl DeXml for String {
     ) -> Result<Self, quick_xml::Error> {
         Self::deserialize_xml_from_text(reader)
     }
+    fn deserialize_xml_from_empty<R: std::io::BufRead>(
+        reader: &mut quick_xml::NsReader<R>,
+        _start: &BytesStart,
+    ) -> Result<Self, quick_xml::Error> {
+        Ok(String::new())
+    }
     fn deserialize_xml_from_text<R: std::io::BufRead>(
         reader: &mut quick_xml::NsReader<R>,
     ) -> Result<Self, quick_xml::Error> {

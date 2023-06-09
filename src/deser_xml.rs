@@ -80,6 +80,12 @@ pub trait DeXml: Sized {
     ) -> Result<Self, quick_xml::Error> {
         unimplemented!("impl deserialize_xml_from_body if applicable")
     }
+    fn deserialize_xml_from_empty<R: BufRead>(
+        reader: &mut NsReader<R>,
+        start: &BytesStart,
+    ) -> Result<Self, quick_xml::Error> {
+        Self::deserialize_xml_from_body(reader, start)
+    }
     fn deserialize_xml_from_body_with_end<R: BufRead>(
         reader: &mut NsReader<R>,
         start: &BytesStart,
@@ -97,7 +103,7 @@ pub trait DeXml: Sized {
         let self_: Self = match reader.read_event_into(&mut buf)? {
             Event::Empty(evt) if evt.name().as_ref() == tag.as_bytes() => {
                 is_empty_elem = true;
-                Self::deserialize_xml_from_body(reader, &evt)?
+                Self::deserialize_xml_from_empty(reader, &evt)?
             }
             Event::Start(evt) if evt.name().as_ref() == tag.as_bytes() => {
                 is_empty_elem = false;
