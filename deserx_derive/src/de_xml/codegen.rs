@@ -24,13 +24,13 @@ pub fn codegen(ir: Ir) -> proc_macro2::TokenStream {
     };
     quote::quote! {
         impl #impl_generics DeXml for #ident #type_generics #where_clause {
-            fn deserialize_xml<R: std::io::BufRead>(reader: &mut quick_xml::NsReader<R>) -> Result<Self, quick_xml::Error> {
+            fn deserialize_xml<R: std::io::BufRead>(reader: &mut quick_xml::NsReader<R>) -> Result<Self, deserx::DeXmlError> {
                 Self::deserialize_xml_from_tag(reader, #tag)
             }
             fn deserialize_xml_from_body<R: std::io::BufRead>(
                 reader: &mut NsReader<R>,
                 start: &BytesStart,
-            ) -> Result<Self, quick_xml::Error> {
+            ) -> Result<Self, deserx::DeXmlError> {
                 #body_expanded
             }
         }

@@ -176,13 +176,13 @@ pub fn derive_de_xml_struct(struct_: &Struct) -> TokenStream {
     format!(
         "impl{0} DeXml for {1}{2} {{
 
-            fn deserialize_xml<R: std::io::BufRead>(reader: &mut quick_xml::NsReader<R>) -> Result<Self, quick_xml::Error> {{
+            fn deserialize_xml<R: std::io::BufRead>(reader: &mut quick_xml::NsReader<R>) -> Result<Self, deserx::DeXmlError> {{
                 Self::deserialize_xml_from_tag(reader, \"{1}\")
             }}
             fn deserialize_xml_from_body<R: std::io::BufRead>(
                 reader: &mut NsReader<R>,
                 start: &BytesStart,
-            ) -> Result<Self, quick_xml::Error> {{
+            ) -> Result<Self, deserx::DeXmlError> {{
                 {3}
                 {4}
             }}

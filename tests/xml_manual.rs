@@ -1,7 +1,7 @@
 use std::io::Cursor;
 
 // use deserx::testing::{assert_ser_tokens, Token};
-use deserx::{DeXml, SerXml};
+use deserx::{DeXml, DeXmlError, SerXml};
 use quick_xml::{events::BytesStart, NsReader, Writer};
 
 #[derive(PartialEq, Debug)]
@@ -10,16 +10,14 @@ struct Common {
 }
 
 impl DeXml for Common {
-    fn deserialize_xml<R: std::io::BufRead>(
-        reader: &mut NsReader<R>,
-    ) -> Result<Self, quick_xml::Error> {
+    fn deserialize_xml<R: std::io::BufRead>(reader: &mut NsReader<R>) -> Result<Self, DeXmlError> {
         Self::deserialize_xml_from_tag(reader, "Common")
     }
 
     fn deserialize_xml_from_body<R: std::io::BufRead>(
         reader: &mut NsReader<R>,
         _start: &BytesStart,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, DeXmlError> {
         let name = String::deserialize_xml_from_tag(reader, "name")?;
 
         Ok(Common { name })
@@ -52,15 +50,13 @@ pub struct Root {
     child: Common,
 }
 impl DeXml for Root {
-    fn deserialize_xml<R: std::io::BufRead>(
-        reader: &mut NsReader<R>,
-    ) -> Result<Self, quick_xml::Error> {
+    fn deserialize_xml<R: std::io::BufRead>(reader: &mut NsReader<R>) -> Result<Self, DeXmlError> {
         Self::deserialize_xml_from_tag(reader, "Root")
     }
     fn deserialize_xml_from_body<R: std::io::BufRead>(
         reader: &mut NsReader<R>,
         start: &BytesStart,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, DeXmlError> {
         let attribute = String::deserialize_xml_from_attribute(&start, "attribute")?;
         let element = String::deserialize_xml_from_tag(reader, "element")?;
         let text = String::deserialize_xml_from_text(reader)?;
@@ -106,16 +102,14 @@ pub struct Flatten {
 }
 
 impl DeXml for Flatten {
-    fn deserialize_xml<R: std::io::BufRead>(
-        reader: &mut NsReader<R>,
-    ) -> Result<Self, quick_xml::Error> {
+    fn deserialize_xml<R: std::io::BufRead>(reader: &mut NsReader<R>) -> Result<Self, DeXmlError> {
         Self::deserialize_xml_from_tag(reader, "Flatten")
     }
 
     fn deserialize_xml_from_body<R: std::io::BufRead>(
         reader: &mut NsReader<R>,
         start: &BytesStart,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, DeXmlError> {
         let common = Common::deserialize_xml_from_body(reader, &start)?;
         let attribute = String::deserialize_xml_from_attribute(&start, "attribute")?;
         let element = String::deserialize_xml_from_tag(reader, "element")?;
@@ -178,31 +172,27 @@ pub struct FlattenAttribute {
     any_name: Attribute,
 }
 impl DeXml for Attribute {
-    fn deserialize_xml<R: std::io::BufRead>(
-        reader: &mut NsReader<R>,
-    ) -> Result<Self, quick_xml::Error> {
+    fn deserialize_xml<R: std::io::BufRead>(reader: &mut NsReader<R>) -> Result<Self, DeXmlError> {
         Self::deserialize_xml_from_tag(reader, "Attribute")
     }
 
     fn deserialize_xml_from_body<R: std::io::BufRead>(
         _reader: &mut NsReader<R>,
         start: &BytesStart,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, DeXmlError> {
         let resource = String::deserialize_xml_from_attribute(start, "resource")?;
         Ok(Self { resource })
     }
 }
 impl DeXml for FlattenAttribute {
-    fn deserialize_xml<R: std::io::BufRead>(
-        reader: &mut NsReader<R>,
-    ) -> Result<Self, quick_xml::Error> {
+    fn deserialize_xml<R: std::io::BufRead>(reader: &mut NsReader<R>) -> Result<Self, DeXmlError> {
         Self::deserialize_xml_from_tag(reader, "FlattenAttribute")
     }
 
     fn deserialize_xml_from_body<R: std::io::BufRead>(
         reader: &mut NsReader<R>,
         start: &BytesStart,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, DeXmlError> {
         let any_name = Attribute::deserialize_xml_from_body(reader, start)?;
         Ok(Self { any_name })
     }
@@ -226,16 +216,14 @@ struct FlattenTwice {
     field: Flatten,
 }
 impl DeXml for FlattenTwice {
-    fn deserialize_xml<R: std::io::BufRead>(
-        reader: &mut NsReader<R>,
-    ) -> Result<Self, quick_xml::Error> {
+    fn deserialize_xml<R: std::io::BufRead>(reader: &mut NsReader<R>) -> Result<Self, DeXmlError> {
         Self::deserialize_xml_from_tag(reader, "FlattenTwice")
     }
 
     fn deserialize_xml_from_body<R: std::io::BufRead>(
         reader: &mut NsReader<R>,
         start: &BytesStart,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, DeXmlError> {
         let field = Flatten::deserialize_xml_from_body(reader, start)?;
         Ok(Self { field })
     }

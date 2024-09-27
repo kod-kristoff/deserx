@@ -1,25 +1,22 @@
 use quick_xml::events::BytesStart;
 
-use crate::DeXml;
+use crate::{DeXml, DeXmlError};
 
 impl DeXml for String {
     fn deserialize_xml<R: std::io::BufRead>(
         reader: &mut quick_xml::NsReader<R>,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, DeXmlError> {
         todo!()
     }
 
-    fn deserialize_xml_from_attribute(
-        start: &BytesStart,
-        attr: &str,
-    ) -> Result<Self, quick_xml::Error> {
+    fn deserialize_xml_from_attribute(start: &BytesStart, attr: &str) -> Result<Self, DeXmlError> {
         let opt_attr_attribute = start.try_get_attribute(attr)?;
         let attribute = match opt_attr_attribute {
             None => {
-                return Err(quick_xml::Error::UnexpectedEof(format!(
-                    "missing '{}' in {:?}",
-                    attr, start
-                )))
+                return Err(DeXmlError::MissingAttribute {
+                    attr: attr.to_string(),
+                    event: format!("{:?}", start),
+                })
             }
             Some(attr_attribute) => {
                 String::from_utf8(attr_attribute.value.to_vec()).expect("string")
@@ -30,44 +27,48 @@ impl DeXml for String {
     // fn deserialize_xml_from_tag<R: std::io::BufRead>(
     //     reader: &mut quick_xml::NsReader<R>,
     //     tag: &str,
-    // ) -> Result<Self, quick_xml::Error> {
+    // ) -> Result<Self, DeXmlError> {
     //     use quick_xml::events::Event;
     //     let mut buf = Vec::new();
     //     let mut name: Option<String> = None;
     //     match reader.read_event_into(&mut buf)? {
     //         Event::Start(evt) if evt.name().as_ref() == tag.as_bytes() => {}
-    //         evt => return Err(quick_xml::Error::UnexpectedToken(format!("got {:?}", evt))),
+    //         evt => return Err(DeXmlError::UnexpectedToken(format!("got {:?}", evt))),
     //     }
     //     let res = match reader.read_event_into(&mut buf)? {
     //         Event::Text(text) => text.unescape().to_owned()?.to_string(),
-    //         evt => return Err(quick_xml::Error::UnexpectedToken(format!("got {:?}", evt))),
+    //         evt => return Err(DeXmlError::UnexpectedToken(format!("got {:?}", evt))),
     //     };
     //     match reader.read_event_into(&mut buf)? {
     //         Event::End(evt) if evt.name().as_ref() == tag.as_bytes() => {}
-    //         evt => return Err(quick_xml::Error::UnexpectedToken(format!("got {:?}", evt))),
+    //         evt => return Err(DeXmlError::UnexpectedToken(format!("got {:?}", evt))),
     //     }
     //     Ok(res)
     // }
     fn deserialize_xml_from_body<R: std::io::BufRead>(
         reader: &mut quick_xml::NsReader<R>,
         start: &BytesStart,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, DeXmlError> {
         Self::deserialize_xml_from_text(reader)
     }
     fn deserialize_xml_from_empty<R: std::io::BufRead>(
         reader: &mut quick_xml::NsReader<R>,
         _start: &BytesStart,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, DeXmlError> {
         Ok(String::new())
     }
     fn deserialize_xml_from_text<R: std::io::BufRead>(
         reader: &mut quick_xml::NsReader<R>,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, DeXmlError> {
         use quick_xml::events::Event;
         let mut buf = Vec::new();
         let res = match reader.read_event_into(&mut buf)? {
-            Event::Text(text) => text.unescape().to_owned()?.to_string(),
-            evt => return Err(quick_xml::Error::UnexpectedToken(format!("got {:?}", evt))),
+            Event::Text(text) => text.unescape()?.to_string(),
+            evt => {
+                return Err(DeXmlError::UnexpectedEvent {
+                    event: format!("{:?}", evt),
+                })
+            }
         };
         Ok(res)
     }
@@ -79,14 +80,14 @@ where
 {
     fn deserialize_xml<R: std::io::BufRead>(
         reader: &mut quick_xml::NsReader<R>,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, DeXmlError> {
         unimplemented!("not supported for vec")
     }
 
     fn deserialize_xml_from_tag<R: std::io::BufRead>(
         reader: &mut quick_xml::NsReader<R>,
         tag: &str,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, DeXmlError> {
         use quick_xml::events::Event;
         let mut _vec = Vec::new();
         let mut buf = Vec::new();
@@ -112,7 +113,7 @@ where
     // fn deserialize_xml_from_body<R: std::io::BufRead>(
     //     reader: &mut quick_xml::NsReader<R>,
     //     start: &BytesStart,
-    // ) -> Result<Self, quick_xml::Error> {
+    // ) -> Result<Self, DeXmlError> {
     //     use quick_xml::events::Event;
 
     //     let mut _vec = Vec::new();

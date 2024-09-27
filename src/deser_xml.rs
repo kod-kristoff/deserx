@@ -7,6 +7,8 @@ use quick_xml::{
     NsReader, Writer,
 };
 
+use crate::DeXmlError;
+
 pub trait SerXml {
     fn serialize_xml<W: std::io::Write>(
         &self,
@@ -62,41 +64,41 @@ pub trait SerXml {
 }
 
 pub trait DeXml: Sized {
-    fn deserialize_xml<R: BufRead>(reader: &mut NsReader<R>) -> Result<Self, quick_xml::Error>;
+    fn deserialize_xml<R: BufRead>(reader: &mut NsReader<R>) -> Result<Self, crate::DeXmlError>;
     fn deserialize_xml_from_text<R: BufRead>(
         reader: &mut NsReader<R>,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, crate::DeXmlError> {
         unimplemented!("impl if applicable")
     }
     fn deserialize_xml_from_attribute(
         start: &BytesStart,
         attr: &str,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, crate::DeXmlError> {
         unimplemented!("impl if applicable")
     }
     fn deserialize_xml_from_body<R: BufRead>(
         reader: &mut NsReader<R>,
         start: &BytesStart,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, crate::DeXmlError> {
         unimplemented!("impl deserialize_xml_from_body if applicable")
     }
     fn deserialize_xml_from_empty<R: BufRead>(
         reader: &mut NsReader<R>,
         start: &BytesStart,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, crate::DeXmlError> {
         Self::deserialize_xml_from_body(reader, start)
     }
     fn deserialize_xml_from_body_with_end<R: BufRead>(
         reader: &mut NsReader<R>,
         start: &BytesStart,
         expected_end: BytesEnd,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, crate::DeXmlError> {
         unimplemented!("impl deserialize_xml_from_body_with_end if applicable")
     }
     fn deserialize_xml_from_tag<R: BufRead>(
         reader: &mut NsReader<R>,
         tag: &str,
-    ) -> Result<Self, quick_xml::Error> {
+    ) -> Result<Self, crate::DeXmlError> {
         use quick_xml::events::Event;
         let mut buf = Vec::new();
         let is_empty_elem: bool;
@@ -110,10 +112,10 @@ pub trait DeXml: Sized {
                 Self::deserialize_xml_from_body(reader, &evt)?
             }
             evt => {
-                return Err(quick_xml::Error::UnexpectedToken(format!(
-                    "expected tag='{}', got {:?}",
-                    tag, evt
-                )))
+                return Err(crate::DeXmlError::UnexpectedTag {
+                    tag: tag.to_string(),
+                    event: format!("{:?}", evt),
+                })
             }
         };
         if !is_empty_elem {
@@ -127,15 +129,17 @@ pub fn expect_event_end<R: std::io::BufRead>(
     reader: &mut NsReader<R>,
     buf: &mut Vec<u8>,
     tag: &[u8],
-) -> Result<(), quick_xml::Error> {
+) -> Result<(), crate::DeXmlError> {
     use quick_xml::events::Event;
     match reader.read_event_into(buf)? {
         Event::End(end) if end.name().as_ref() == tag => Ok(()),
-        evt => Err(quick_xml::Error::UnexpectedToken(format!(
-            "expected End({}), got {:?}",
-            String::from_utf8_lossy(tag),
-            evt
-        ))),
+        evt => Err(crate::DeXmlError::UnexpectedEvent {
+            event: format!(
+                "expected End({}), got {:?}",
+                String::from_utf8_lossy(tag),
+                evt
+            ),
+        }),
     }
 }
 
