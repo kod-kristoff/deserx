@@ -5,14 +5,12 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [workspace]
-members = [
-  "deserx_derive",
-]
+members = ["deserx_derive"]
 
 [dependencies]
 hashbrown = { version = "0.13.2", optional = true }
 deserx_derive = { version = "0.1.0", path = "deserx_derive" }
-quick-xml = { version = "0.28.2", default-features = false }
+quick-xml = { version = ">=0.28", default-features = false }
 
 # [dev-dependencies]
 # deserx_derive = { version = "0.1.0", path = "deserx_derive" }
@@ -22,4 +20,3 @@ default = []
 
 # derive = ["deserx_derive"]
 no_std = ["dep:hashbrown"]
-
