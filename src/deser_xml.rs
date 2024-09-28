@@ -109,7 +109,10 @@ pub trait DeXml: Sized {
             }
             Event::Start(evt) if evt.name().as_ref() == tag.as_bytes() => {
                 is_empty_elem = false;
-                Self::deserialize_xml_from_body(reader, &evt)?
+                let mut body_buf = Vec::new();
+                reader.read_to_end_into(evt.to_end().name(), &mut body_buf)?;
+                let mut body_reader = quick_xml::NsReader::from_reader(body_buf.as_slice());
+                Self::deserialize_xml_from_body(&mut body_reader, &evt)?
             }
             evt => {
                 return Err(crate::DeXmlError::UnexpectedTag {
