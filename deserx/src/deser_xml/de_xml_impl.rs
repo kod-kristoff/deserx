@@ -136,25 +136,25 @@ where
         Ok(_vec)
     }
 
-    // fn deserialize_xml_from_body<R: std::io::BufRead>(
-    //     reader: &mut quick_xml::NsReader<R>,
-    //     start: &BytesStart,
-    // ) -> Result<Self, DeXmlError> {
-    //     use quick_xml::events::Event;
+    fn deserialize_xml_from_body<R: std::io::BufRead>(
+        reader: &mut quick_xml::NsReader<R>,
+        start: &BytesStart,
+    ) -> Result<Self, DeXmlError> {
+        use quick_xml::events::Event;
 
-    //     let mut _vec = Vec::new();
-    //     let mut buf = Vec::new();
-    //     loop {
-    //         match reader.read_event_into(&mut buf)? {
-    //             Event::Start(mut evt) => {
-    //                 let val = T::deserialize_xml_from_body(reader, &mut evt)?;
-    //                 _vec.push(val);
-    //             }
-    //             evt => todo!("handle {:?}", evt),
-    //         }
-    //     }
-    //     Ok(_vec)
-    // }
+        let mut _vec = Vec::new();
+        let mut buf = Vec::new();
+        loop {
+            match reader.read_event_into(&mut buf)? {
+                Event::Start(mut evt) => {
+                    let val = T::deserialize_xml_from_body(reader, &mut evt)?;
+                    _vec.push(val);
+                }
+                evt => todo!("handle {:?}", evt),
+            }
+        }
+        Ok(_vec)
+    }
 }
 
 impl DeXml for usize {

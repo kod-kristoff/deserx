@@ -90,7 +90,9 @@ pub trait DeXml: Sized {
         reader: &mut NsReader<R>,
         start: &BytesStart,
     ) -> Result<Self, crate::DeXmlError> {
-        unimplemented!("impl deserialize_xml_from_body if applicable")
+        Err(crate::DeXmlError::custom(
+            "impl deserialize_xml_from_body if applicable",
+        ))
     }
     fn deserialize_xml_from_empty<R: BufRead>(
         reader: &mut NsReader<R>,
