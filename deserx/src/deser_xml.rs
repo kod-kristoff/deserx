@@ -121,9 +121,9 @@ pub trait DeXml: Sized {
                 })
             }
         };
-        if !is_empty_elem {
-            expect_event_end(reader, &mut buf, tag.as_bytes())?;
-        }
+        // if !is_empty_elem {
+        //     expect_event_end(reader, &mut buf, tag.as_bytes())?;
+        // }
         Ok(self_)
     }
 }

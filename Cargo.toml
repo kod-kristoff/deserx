@@ -1,3 +1,4 @@
 
 [workspace]
+resolver = "2"
 members = ["deserx", "deserx-quick-xml", "deserx_derive", "test-suite"]
