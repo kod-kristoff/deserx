@@ -6,8 +6,14 @@ pub enum DeXmlError {
     XmlError(quick_xml::Error),
     UnexpectedEvent { event: String },
     UnexpectedTag { tag: String, event: String },
+    Custom(String),
 }
 
+impl DeXmlError {
+    pub fn custom<T: fmt::Display>(msg: T) -> Self {
+        Self::Custom(msg.to_string())
+    }
+}
 impl From<quick_xml::Error> for DeXmlError {
     fn from(value: quick_xml::Error) -> Self {
         Self::XmlError(value)
@@ -17,6 +23,7 @@ impl From<quick_xml::Error> for DeXmlError {
 impl fmt::Display for DeXmlError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Custom(s) => write!(f, "Custom error: {}", s),
             Self::MissingAttribute { attr, event } => {
                 f.write_fmt(format_args!("Attribute '{attr}' is missing in {event}"))
             }
