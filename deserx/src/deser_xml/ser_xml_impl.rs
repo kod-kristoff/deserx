@@ -112,3 +112,37 @@ where
     //     serializer.write_event(Event::Text(BytesText::new(&self)))
     // }
 }
+
+impl SerXml for usize {
+    fn serialize_xml<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        unimplemented!("not supprorted for usize")
+    }
+
+    // fn ser_as_element<W: std::io::Write>(
+    //     &self,
+    //     serializer: &mut Writer<W>,
+    //     tag: &str,
+    // ) -> Result<(), quick_xml::Error> {
+    //     serializer
+    //         .create_element(tag)
+    //         .write_text_content(BytesText::new(&format!("{}", self)))?;
+    //     Ok(())
+    // }
+
+    fn ser_as_text<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        serializer.write_event(Event::Text(BytesText::new(&format!("{}", self))))
+    }
+
+    fn ser_elem_body<W: std::io::Write>(
+        &self,
+        serializer: &mut Writer<W>,
+    ) -> Result<(), quick_xml::Error> {
+        self.ser_as_text(serializer)
+    }
+}

@@ -8,6 +8,7 @@ use quick_xml::{events::BytesStart, NsReader, Writer};
 struct Common {
     name: String,
     friend: Option<String>,
+    age: usize,
 }
 
 impl DeXml for Common {
@@ -21,8 +22,9 @@ impl DeXml for Common {
     ) -> Result<Self, DeXmlError> {
         let name = String::deserialize_xml_from_tag(reader, "name")?;
         let friend = Option::<String>::deserialize_xml_from_tag(reader, "friend")?;
+        let age = usize::deserialize_xml_from_tag(reader, "age")?;
 
-        Ok(Common { name, friend })
+        Ok(Common { name, friend, age })
     }
 }
 
@@ -40,6 +42,7 @@ impl SerXml for Common {
     ) -> Result<(), quick_xml::Error> {
         self.name.ser_as_element(serializer, "name")?;
         self.friend.ser_as_element(serializer, "friend")?;
+        self.age.ser_as_element(serializer, "age")?;
         Ok(())
     }
 }
@@ -48,6 +51,8 @@ impl SerXml for Common {
 pub struct Root {
     // #[deserx(xml_attribute)]
     attribute: String,
+    // #[deserx(xml_attribute)]
+    attr_value: usize,
     element: String,
     // #[deserx(xml_text)]
     text: String,
@@ -62,11 +67,13 @@ impl DeXml for Root {
         start: &BytesStart,
     ) -> Result<Self, DeXmlError> {
         let attribute = String::deserialize_xml_from_attribute(&start, "attribute")?;
+        let attr_value = usize::deserialize_xml_from_attribute(start, "attr_value")?;
         let element = String::deserialize_xml_from_tag(reader, "element")?;
         let text = String::deserialize_xml_from_text(reader)?;
         let child = Common::deserialize_xml_from_tag(reader, "child")?;
         Ok(Self {
             attribute,
+            attr_value,
             element,
             text,
             child,
@@ -76,6 +83,7 @@ impl DeXml for Root {
 impl SerXml for Root {
     fn ser_elem_attributes(&self, element: &mut quick_xml::events::BytesStart) {
         element.push_attribute(("attribute", self.attribute.as_str()));
+        element.push_attribute(("attr_value", self.attr_value.to_string().as_str()));
     }
     fn ser_elem_body<W: std::io::Write>(
         &self,
@@ -337,6 +345,7 @@ fn deser_common() {
     let data = Common {
         name: "child content".to_string(),
         friend: None,
+        age: 13,
     };
 
     let mut writer = Writer::new(Cursor::new(Vec::new()));
@@ -348,6 +357,7 @@ fn deser_common() {
         "<Common>\
             <name>child content</name>\
             <friend/>\
+            <age>13</age>\
         </Common>\
         "
     );
@@ -367,11 +377,13 @@ fn deser_common() {
 fn deser_root() {
     let data = Root {
         attribute: "attribute content".to_string(),
+        attr_value: 5,
         element: "element content".to_string(),
         text: "text content".to_string(),
         child: Common {
             name: "child content".to_string(),
             friend: Some("sibling".into()),
+            age: 6,
         },
     };
 
@@ -381,10 +393,10 @@ fn deser_root() {
     let buffer = writer.into_inner().into_inner();
     assert_eq!(
         String::from_utf8_lossy(&buffer),
-        "<Root attribute=\"attribute content\">\
+        "<Root attribute=\"attribute content\" attr_value=\"5\">\
             <element>element content</element>\
             text content\
-            <child><name>child content</name><friend>sibling</friend></child>\
+            <child><name>child content</name><friend>sibling</friend><age>6</age></child>\
         </Root>\
         "
     );
@@ -407,6 +419,7 @@ fn deser_flatten() {
         common: Common {
             name: "Name".to_string(),
             friend: None,
+            age: 7,
         },
         attribute: "attribute content".to_string(),
         element: "element content".to_string(),
@@ -422,6 +435,7 @@ fn deser_flatten() {
         "<Flatten attribute=\"attribute content\">\
             <name>Name</name>\
             <friend/>\
+            <age>7</age>\
             <element>element content</element>\
             text content\
         </Flatten>\
@@ -446,6 +460,7 @@ fn deser_flatten_twice() {
             common: Common {
                 name: "Name".to_string(),
                 friend: Some("Friend".into()),
+                age: 90,
             },
             attribute: "attribute content".to_string(),
             element: "element content".to_string(),
@@ -462,6 +477,7 @@ fn deser_flatten_twice() {
         "<FlattenTwice attribute=\"attribute content\">\
             <name>Name</name>\
             <friend>Friend</friend>\
+            <age>90</age>\
             <element>element content</element>\
             text content\
         </FlattenTwice>\

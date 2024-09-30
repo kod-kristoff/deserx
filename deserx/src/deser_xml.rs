@@ -4,8 +4,8 @@ mod de_xml_impl;
 mod ser_xml_impl;
 
 use quick_xml::{
-    events::{BytesEnd, BytesStart, BytesText, Event},
-    NsReader, Writer,
+    events::{attributes::Attribute, BytesEnd, BytesStart, BytesText, Event},
+    ElementWriter, NsReader, Writer,
 };
 
 use crate::DeXmlError;
@@ -22,11 +22,22 @@ pub trait SerXml {
         serializer: &mut Writer<W>,
         tag: &str,
     ) -> Result<(), quick_xml::Error> {
-        let mut elem = BytesStart::new(tag);
-        self.ser_elem_attributes(&mut elem);
+        let elem = self.element_start(tag);
         serializer.write_event(Event::Start(elem.clone()))?;
         self.ser_elem_body(serializer)?;
-        serializer.write_event(Event::End(elem.to_end()))
+        serializer.write_event(Event::End(elem.to_end()))?;
+
+        Ok(())
+    }
+
+    fn element_start<'a>(&self, tag: &'a str) -> BytesStart<'a> {
+        let mut elem = BytesStart::new(tag);
+        self.ser_elem_attributes(&mut elem);
+        elem
+    }
+
+    fn attributes(&self) -> &[(&str, &str)] {
+        &[]
     }
 
     fn ser_as_element_empty<W: std::io::Write>(
@@ -34,9 +45,7 @@ pub trait SerXml {
         serializer: &mut Writer<W>,
         tag: &str,
     ) -> Result<(), quick_xml::Error> {
-        let mut elem = BytesStart::new(tag);
-        self.ser_elem_attributes(&mut elem);
-        serializer.write_event(Event::Empty(elem))
+        serializer.write_event(Event::Empty(self.element_start(tag)))
     }
 
     fn ser_elem_body<W: std::io::Write>(
@@ -46,10 +55,10 @@ pub trait SerXml {
         todo!("please impl ser_elem_body")
     }
 
-    fn ser_elem_attributes(&self, element: &mut quick_xml::events::BytesStart)
-    // -> Result<(), quick_xml::Error>
-    {
-        // todo!("please impl ser_elem_attributes")
+    fn ser_elem_attributes(&self, element: &mut quick_xml::events::BytesStart) {
+        for attr in self.attributes() {
+            element.push_attribute(*attr);
+        }
     }
 
     fn ser_as_text<W: std::io::Write>(

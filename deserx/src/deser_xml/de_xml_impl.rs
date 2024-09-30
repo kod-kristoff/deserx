@@ -19,7 +19,7 @@ impl DeXml for String {
                 })
             }
             Some(attr_attribute) => {
-                String::from_utf8(attr_attribute.value.to_vec()).expect("string")
+                String::from_utf8(attr_attribute.value.to_vec()).map_err(DeXmlError::custom)?
             }
         };
         Ok(attribute)
@@ -155,4 +155,51 @@ where
     //     }
     //     Ok(_vec)
     // }
+}
+
+impl DeXml for usize {
+    fn deserialize_xml<R: std::io::BufRead>(
+        reader: &mut quick_xml::NsReader<R>,
+    ) -> Result<Self, crate::DeXmlError> {
+        unimplemented!("not supported for usize")
+    }
+
+    fn deserialize_xml_from_text<R: std::io::BufRead>(
+        reader: &mut quick_xml::NsReader<R>,
+    ) -> Result<Self, DeXmlError> {
+        use quick_xml::events::Event;
+        let mut buf = Vec::new();
+        match reader.read_event_into(&mut buf)? {
+            Event::Text(text) => text
+                .unescape()?
+                .as_ref()
+                .parse::<usize>()
+                .map_err(crate::DeXmlError::custom),
+            evt => Err(DeXmlError::UnexpectedEvent {
+                event: format!("{:?}", evt),
+            }),
+        }
+    }
+    fn deserialize_xml_from_body<R: std::io::BufRead>(
+        reader: &mut quick_xml::NsReader<R>,
+        start: &BytesStart,
+    ) -> Result<Self, DeXmlError> {
+        Self::deserialize_xml_from_text(reader)
+    }
+
+    fn deserialize_xml_from_attribute(start: &BytesStart, attr: &str) -> Result<Self, DeXmlError> {
+        let opt_attr_attribute = start.try_get_attribute(attr)?;
+        let attribute = match opt_attr_attribute {
+            None => {
+                return Err(DeXmlError::MissingAttribute {
+                    attr: attr.to_string(),
+                    event: format!("{:?}", start),
+                })
+            }
+            Some(attr_attribute) => String::from_utf8_lossy(attr_attribute.value.as_ref())
+                .parse::<usize>()
+                .map_err(DeXmlError::custom)?,
+        };
+        Ok(attribute)
+    }
 }
