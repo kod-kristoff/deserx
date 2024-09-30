@@ -75,6 +75,17 @@ impl DeXml for String {
     }
 }
 
+impl<T> DeXml for Option<T>
+where
+    T: DeXml,
+{
+    fn deserialize_xml<R: std::io::BufRead>(
+        reader: &mut quick_xml::NsReader<R>,
+    ) -> Result<Self, crate::DeXmlError> {
+        let _ = reader;
+        unimplemented!("not supported for Option")
+    }
+}
 impl<T> DeXml for Vec<T>
 where
     T: DeXml,
