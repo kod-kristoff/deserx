@@ -1,6 +1,7 @@
 use std::{borrow::Cow, io::BufRead};
 
 mod de_xml_impl;
+mod ser_xml_impl;
 
 use quick_xml::{
     events::{BytesEnd, BytesStart, BytesText, Event},
@@ -109,11 +110,7 @@ pub trait DeXml: Sized {
             }
             Event::Start(evt) if evt.name().as_ref() == tag.as_bytes() => {
                 is_empty_elem = false;
-                let mut body_buf = Vec::new();
-                reader.read_to_end_into(evt.to_end().name(), &mut body_buf)?;
-                dbg!(String::from_utf8_lossy(&body_buf));
-                let mut body_reader = quick_xml::NsReader::from_reader(body_buf.as_slice());
-                Self::deserialize_xml_from_body(&mut body_reader, &evt)?
+                Self::deserialize_xml_from_body(reader, &evt)?
             }
             evt => {
                 return Err(crate::DeXmlError::UnexpectedTag {
@@ -122,9 +119,9 @@ pub trait DeXml: Sized {
                 })
             }
         };
-        // if !is_empty_elem {
-        //     expect_event_end(reader, &mut buf, tag.as_bytes())?;
-        // }
+        if !is_empty_elem {
+            expect_event_end(reader, &mut buf, tag.as_bytes())?;
+        }
         Ok(self_)
     }
 }
@@ -177,71 +174,4 @@ pub trait XmlSerializeStruct {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error>;
-}
-
-impl SerXml for String {
-    fn serialize_xml<W: std::io::Write>(
-        &self,
-        serializer: &mut Writer<W>,
-    ) -> Result<(), quick_xml::Error> {
-        unimplemented!("")
-    }
-
-    fn ser_as_element<W: std::io::Write>(
-        &self,
-        serializer: &mut Writer<W>,
-        tag: &str,
-    ) -> Result<(), quick_xml::Error> {
-        let elem = BytesStart::new(tag);
-        serializer.write_event(Event::Start(elem.clone()))?;
-        serializer.write_event(Event::Text(BytesText::new(&self)))?;
-        serializer.write_event(Event::End(elem.to_end()))
-    }
-
-    fn ser_as_text<W: std::io::Write>(
-        &self,
-        serializer: &mut Writer<W>,
-    ) -> Result<(), quick_xml::Error> {
-        serializer.write_event(Event::Text(BytesText::new(&self)))
-    }
-
-    fn as_cow_str<'a>(&'a self) -> Cow<'a, str> {
-        Cow::Borrowed(&self)
-    }
-}
-
-impl<T> SerXml for Vec<T>
-where
-    T: SerXml,
-{
-    fn serialize_xml<W: std::io::Write>(
-        &self,
-        serializer: &mut Writer<W>,
-    ) -> Result<(), quick_xml::Error> {
-        unimplemented!()
-    }
-
-    fn ser_as_element<W: std::io::Write>(
-        &self,
-        serializer: &mut Writer<W>,
-        tag: &str,
-    ) -> Result<(), quick_xml::Error> {
-        let elem = BytesStart::new(tag);
-        if self.is_empty() {
-            serializer.write_event(Event::Empty(elem))
-        } else {
-            serializer.write_event(Event::Start(elem.clone()))?;
-            self.ser_elem_body(serializer)?;
-            serializer.write_event(Event::End(elem.to_end()))
-        }
-    }
-    fn ser_elem_body<W: std::io::Write>(
-        &self,
-        serializer: &mut Writer<W>,
-    ) -> Result<(), quick_xml::Error> {
-        for obj in self {
-            obj.serialize_xml(serializer)?;
-        }
-        Ok(())
-    }
 }

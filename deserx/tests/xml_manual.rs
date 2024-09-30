@@ -7,6 +7,7 @@ use quick_xml::{events::BytesStart, NsReader, Writer};
 #[derive(PartialEq, Debug)]
 struct Common {
     name: String,
+    friend: Option<String>,
 }
 
 impl DeXml for Common {
@@ -19,8 +20,9 @@ impl DeXml for Common {
         _start: &BytesStart,
     ) -> Result<Self, DeXmlError> {
         let name = String::deserialize_xml_from_tag(reader, "name")?;
+        let friend = Option::<String>::deserialize_xml_from_tag(reader, "friend")?;
 
-        Ok(Common { name })
+        Ok(Common { name, friend })
     }
 }
 
@@ -36,7 +38,9 @@ impl SerXml for Common {
         &self,
         serializer: &mut Writer<W>,
     ) -> Result<(), quick_xml::Error> {
-        self.name.ser_as_element(serializer, "name")
+        self.name.ser_as_element(serializer, "name")?;
+        self.friend.ser_as_element(serializer, "friend")?;
+        Ok(())
     }
 }
 
@@ -332,6 +336,7 @@ fn de_flatten_attribute_start_end() {
 fn deser_common() {
     let data = Common {
         name: "child content".to_string(),
+        friend: None,
     };
 
     let mut writer = Writer::new(Cursor::new(Vec::new()));
@@ -342,6 +347,7 @@ fn deser_common() {
         String::from_utf8_lossy(&buffer),
         "<Common>\
             <name>child content</name>\
+            <friend/>\
         </Common>\
         "
     );
@@ -365,6 +371,7 @@ fn deser_root() {
         text: "text content".to_string(),
         child: Common {
             name: "child content".to_string(),
+            friend: Some("sibling".into()),
         },
     };
 
@@ -377,7 +384,7 @@ fn deser_root() {
         "<Root attribute=\"attribute content\">\
             <element>element content</element>\
             text content\
-            <child><name>child content</name></child>\
+            <child><name>child content</name><friend>sibling</friend></child>\
         </Root>\
         "
     );
@@ -399,6 +406,7 @@ fn deser_flatten() {
     let data = Flatten {
         common: Common {
             name: "Name".to_string(),
+            friend: None,
         },
         attribute: "attribute content".to_string(),
         element: "element content".to_string(),
@@ -413,6 +421,7 @@ fn deser_flatten() {
         String::from_utf8_lossy(&buffer),
         "<Flatten attribute=\"attribute content\">\
             <name>Name</name>\
+            <friend/>\
             <element>element content</element>\
             text content\
         </Flatten>\
@@ -436,6 +445,7 @@ fn deser_flatten_twice() {
         field: Flatten {
             common: Common {
                 name: "Name".to_string(),
+                friend: Some("Friend".into()),
             },
             attribute: "attribute content".to_string(),
             element: "element content".to_string(),
@@ -451,6 +461,7 @@ fn deser_flatten_twice() {
         String::from_utf8_lossy(&buffer),
         "<FlattenTwice attribute=\"attribute content\">\
             <name>Name</name>\
+            <friend>Friend</friend>\
             <element>element content</element>\
             text content\
         </FlattenTwice>\

@@ -85,6 +85,20 @@ where
         let _ = reader;
         unimplemented!("not supported for Option")
     }
+
+    fn deserialize_xml_from_body<R: std::io::BufRead>(
+        reader: &mut quick_xml::NsReader<R>,
+        start: &BytesStart,
+    ) -> Result<Self, crate::DeXmlError> {
+        Ok(Some(T::deserialize_xml_from_body(reader, start)?))
+    }
+
+    fn deserialize_xml_from_empty<R: std::io::BufRead>(
+        reader: &mut quick_xml::NsReader<R>,
+        start: &BytesStart,
+    ) -> Result<Self, crate::DeXmlError> {
+        Ok(None)
+    }
 }
 impl<T> DeXml for Vec<T>
 where

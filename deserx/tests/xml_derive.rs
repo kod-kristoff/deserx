@@ -15,6 +15,7 @@ pub struct Attribute {
 #[derive(SerXml, PartialEq, Debug, DeXml)]
 struct Common {
     name: String,
+    friend: Option<String>,
 }
 
 #[derive(SerXml, Debug, PartialEq, DeXml)]
@@ -139,6 +140,7 @@ fn de_flatten_attribute_start_end() {
 fn deser_derive_common() {
     let data = Common {
         name: "child content".to_string(),
+        friend: None,
     };
 
     let mut writer = Writer::new(Cursor::new(Vec::new()));
@@ -149,6 +151,7 @@ fn deser_derive_common() {
         String::from_utf8_lossy(&buffer),
         "<Common>\
             <name>child content</name>\
+            <friend/>\
         </Common>\
         "
     );
@@ -167,6 +170,7 @@ fn deser_root() {
         text: "text content".to_string(),
         child: Common {
             name: "child content".to_string(),
+            friend: Some("sibling".into()),
         },
     };
 
@@ -179,7 +183,7 @@ fn deser_root() {
         "<Root attribute=\"attribute content\">\
             <element>element content</element>\
             text content\
-            <child><name>child content</name></child>\
+            <child><name>child content</name><friend>sibling</friend></child>\
         </Root>\
         "
     );
@@ -196,6 +200,7 @@ fn deser_derive_flatten() {
     let data = Flatten {
         common: Common {
             name: "Name".to_string(),
+            friend: None,
         },
         attribute: "attribute content".to_string(),
         element: "element content".to_string(),
@@ -210,6 +215,7 @@ fn deser_derive_flatten() {
         String::from_utf8_lossy(&buffer),
         "<Flatten attribute=\"attribute content\">\
             <name>Name</name>\
+            <friend/>\
             <element>element content</element>\
             text content\
         </Flatten>\
@@ -229,6 +235,7 @@ fn deser_derive_flatten_twice() {
         field: Flatten {
             common: Common {
                 name: "Name".to_string(),
+                friend: Some("Friend".into()),
             },
             attribute: "attribute content".to_string(),
             element: "element content".to_string(),
@@ -244,6 +251,7 @@ fn deser_derive_flatten_twice() {
         String::from_utf8_lossy(&buffer),
         "<FlattenTwice attribute=\"attribute content\">\
             <name>Name</name>\
+            <friend>Friend</friend>\
             <element>element content</element>\
             text content\
         </FlattenTwice>\
@@ -267,9 +275,11 @@ fn deser_derive_vec() {
         field: vec![
             Common {
                 name: "Name 1".to_string(),
+                friend: None,
             },
             Common {
                 name: "Name 2".to_string(),
+                friend: Some("Name 1".into()),
             },
         ],
     };
@@ -282,8 +292,8 @@ fn deser_derive_vec() {
         String::from_utf8_lossy(&buffer),
         "<Base>\
             <field>\
-            <Common><name>Name 1</name></Common>\
-            <Common><name>Name 2</name></Common>\
+            <Common><name>Name 1</name><friend/></Common>\
+            <Common><name>Name 2</name><friend>Name 1</friend></Common>\
             </field>\
         </Base>\
         "
