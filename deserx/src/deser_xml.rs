@@ -111,6 +111,7 @@ pub trait DeXml: Sized {
                 is_empty_elem = false;
                 let mut body_buf = Vec::new();
                 reader.read_to_end_into(evt.to_end().name(), &mut body_buf)?;
+                dbg!(String::from_utf8_lossy(&body_buf));
                 let mut body_reader = quick_xml::NsReader::from_reader(body_buf.as_slice());
                 Self::deserialize_xml_from_body(&mut body_reader, &evt)?
             }

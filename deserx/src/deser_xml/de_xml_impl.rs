@@ -70,6 +70,7 @@ impl DeXml for String {
                 })
             }
         };
+        dbg!(&res);
         Ok(res)
     }
 }
