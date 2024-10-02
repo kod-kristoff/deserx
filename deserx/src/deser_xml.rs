@@ -114,22 +114,36 @@ pub trait DeXml: Sized {
         use quick_xml::events::Event;
         let mut buf = Vec::new();
         let is_empty_elem: bool;
-        let self_: Self = match reader.read_event_into(&mut buf)? {
-            Event::Empty(evt) if evt.name().as_ref() == tag.as_bytes() => {
-                is_empty_elem = true;
-                Self::deserialize_xml_from_empty(reader, &evt)?
+        let self_: Self;
+        loop {
+            match reader.read_event_into(&mut buf)? {
+                Event::Empty(evt) if evt.name().as_ref() == tag.as_bytes() => {
+                    is_empty_elem = true;
+                    self_ = Self::deserialize_xml_from_empty(reader, &evt)?;
+                    break;
+                }
+                Event::Start(evt) if evt.name().as_ref() == tag.as_bytes() => {
+                    is_empty_elem = false;
+                    self_ = Self::deserialize_xml_from_body(reader, &evt)?;
+                    break;
+                }
+                Event::Text(e) => {
+                    if e.unescape()?.is_empty() {
+                        dbg!("skipping empty text");
+                        continue;
+                    } else {
+                        return Err(DeXmlError::UnexpectedEvent {
+                            event: format!("{:?}", Event::Text(e)),
+                        });
+                    }
+                }
+                evt => {
+                    return Err(crate::DeXmlError::UnexpectedEvent {
+                        event: format!("{:?}", evt),
+                    })
+                }
             }
-            Event::Start(evt) if evt.name().as_ref() == tag.as_bytes() => {
-                is_empty_elem = false;
-                Self::deserialize_xml_from_body(reader, &evt)?
-            }
-            evt => {
-                return Err(crate::DeXmlError::UnexpectedTag {
-                    tag: tag.to_string(),
-                    event: format!("{:?}", evt),
-                })
-            }
-        };
+        }
         if !is_empty_elem {
             expect_event_end(reader, &mut buf, tag.as_bytes())?;
         }
