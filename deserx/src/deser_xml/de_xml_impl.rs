@@ -66,10 +66,35 @@ impl DeXml for String {
             Event::Text(text) => text.unescape()?.to_string(),
             evt => {
                 return Err(DeXmlError::UnexpectedEvent {
-                    event: format!("{:?}", evt),
+                    event: format!("de_xml_impl:69: {:?}", evt),
                 })
             }
         };
+        Ok(res)
+    }
+    fn deserialize_xml_from_tag<R: std::io::BufRead>(
+        reader: &mut quick_xml::NsReader<R>,
+        tag: &str,
+    ) -> Result<Self, DeXmlError> {
+        use quick_xml::events::Event;
+        let mut buf = Vec::new();
+        let mut res = String::default();
+        loop {
+            match reader.read_event_into(&mut buf)? {
+                Event::Start(e) if e.name().as_ref() == tag.as_bytes() => {
+                    continue;
+                }
+                Event::End(e) if e.name().as_ref() == tag.as_bytes() => {
+                    break;
+                }
+                Event::Text(text) => res.push_str(text.unescape()?.as_ref()),
+                evt => {
+                    return Err(DeXmlError::UnexpectedEvent {
+                        event: format!("de_xml_impl:69: {:?}", evt),
+                    })
+                }
+            }
+        }
         Ok(res)
     }
 }
