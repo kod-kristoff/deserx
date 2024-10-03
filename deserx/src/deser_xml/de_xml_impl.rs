@@ -81,6 +81,10 @@ impl DeXml for String {
         let mut res = String::default();
         loop {
             match reader.read_event_into(&mut buf)? {
+                Event::Empty(e) if e.name().as_ref() == tag.as_bytes() => {
+                    res = String::default();
+                    break;
+                }
                 Event::Start(e) if e.name().as_ref() == tag.as_bytes() => {
                     continue;
                 }
@@ -90,7 +94,7 @@ impl DeXml for String {
                 Event::Text(text) => res.push_str(text.unescape()?.as_ref()),
                 evt => {
                     return Err(DeXmlError::UnexpectedEvent {
-                        event: format!("de_xml_impl:69: {:?}", evt),
+                        event: format!("de_xml_impl:97: <String> {:?}", evt),
                     })
                 }
             }
