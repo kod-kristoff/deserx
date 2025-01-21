@@ -3,6 +3,7 @@ pub use crate::deser_xml::{DeXml, SerXml, XmlSerializeStruct, XmlSerializer};
 pub use deserx_derive::*;
 pub use error::DeXmlError;
 
+pub mod de_xml;
 mod deser_xml;
 mod error;
 pub mod quick_xml_impl;

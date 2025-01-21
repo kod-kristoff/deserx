@@ -4,3 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+quick-xml = { version = ">=0.28", default-features = false }
+deserx = { path = "../deserx" }
