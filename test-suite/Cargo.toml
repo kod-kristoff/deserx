@@ -5,3 +5,8 @@ edition = "2021"
 
 [dependencies]
 deserx = { path = "../deserx" }
+
+[dev-dependencies]
+anyhow = "1.0.89"
+deserx-quick-xml = { path = "../deserx-quick-xml" }
+similar-asserts = "1.6.0"
